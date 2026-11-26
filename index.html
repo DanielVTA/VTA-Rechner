@@ -1,0 +1,677 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Klärwerk">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="icon" type="image/png" href="favicon.png">
+<title>Klärwerk-Rechner | VTA.cc</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Condensed:wght@500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+/* Layout: eine Spalte, Rechner-Reiter oben (horizontal scrollbar), darunter Eingabe, Ergebnis, Erklärung */
+:root{
+  --bg:#eaf0f1;
+  --surface:#ffffff;
+  --ink:#13232a;
+  --muted:#586a72;
+  --line:#d3dde0;
+  --accent:#0d6b73;
+  --accent-ink:#ffffff;
+  --ok:#1d7448; --ok-bg:#e2f2e9;
+  --warn:#9a5d00; --warn-bg:#fbefd9;
+  --bad:#ad2a1f; --bad-bg:#fbe3e0;
+  --info:#3d5a66; --info-bg:#e3ecef;
+  --display:"IBM Plex Sans Condensed","Arial Narrow",system-ui,sans-serif;
+  --body:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
+  color-scheme:light;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#0e171b; --surface:#16242a; --ink:#e4eef0; --muted:#97aab1; --line:#28393f;
+    --accent:#4fb3ba; --accent-ink:#06191c;
+    --ok:#6fd39d; --ok-bg:#16352a; --warn:#f0b65a; --warn-bg:#3a2c12;
+    --bad:#ff8b80; --bad-bg:#3d1c19; --info:#a9c3cc; --info-bg:#1f3239;
+    color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#0e171b; --surface:#16242a; --ink:#e4eef0; --muted:#97aab1; --line:#28393f;
+  --accent:#4fb3ba; --accent-ink:#06191c;
+  --ok:#6fd39d; --ok-bg:#16352a; --warn:#f0b65a; --warn-bg:#3a2c12;
+  --bad:#ff8b80; --bad-bg:#3d1c19; --info:#a9c3cc; --info-bg:#1f3239;
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+html,body{margin:0}
+:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);background:var(--bg);z-index:10}
+body{background:var(--bg);color:var(--ink);font-family:var(--body);font-size:16px;line-height:1.45;-webkit-text-size-adjust:100%}
+.wrap{max-width:720px;margin:0 auto;padding:16px 16px 48px;display:flex;flex-direction:column;gap:14px}
+header{display:flex;flex-direction:column;gap:2px;padding-top:6px}
+.logo{display:inline-flex;align-items:center;gap:10px;align-self:flex-start;margin-bottom:10px;text-decoration:none;color:var(--ink)}
+.logo-mark{width:34px;height:34px;flex:0 0 auto;display:block}
+.logo-mark rect{fill:var(--accent)}
+.logo-mark path{fill:none;stroke:var(--accent-ink);stroke-width:2.6;stroke-linecap:round;stroke-linejoin:round}
+.logo-text{font-family:var(--display);font-weight:600;font-size:1.45rem;letter-spacing:.02em;line-height:1}
+.logo-text span{color:var(--accent)}
+h1{font-family:var(--display);font-weight:600;font-size:1.65rem;letter-spacing:.01em;margin:0;text-wrap:balance}
+.sub{color:var(--muted);font-size:.9rem;margin:0}
+nav{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--bg);margin:0 -16px;padding:8px 16px}
+.tabs{display:flex;gap:8px;overflow-x:auto;scrollbar-width:none;-webkit-overflow-scrolling:touch}
+.tabs::-webkit-scrollbar{display:none}
+.tab{flex:0 0 auto;border:1px solid var(--line);background:var(--surface);color:var(--ink);font:500 .92rem/1 var(--body);padding:10px 14px;border-radius:999px;cursor:pointer;white-space:nowrap}
+.tab[aria-selected="true"]{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.tab:focus-visible,button:focus-visible,input:focus-visible,summary:focus-visible{outline:3px solid color-mix(in srgb,var(--accent) 55%,transparent);outline-offset:2px}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:16px;display:flex;flex-direction:column;gap:14px}
+.card h2{font-family:var(--display);font-weight:600;font-size:1.25rem;margin:0;text-wrap:balance}
+.lead{margin:0;color:var(--muted);font-size:.92rem}
+.fields{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+@media (max-width:420px){.fields{grid-template-columns:1fr}}
+.field{display:flex;flex-direction:column;gap:4px;min-width:0}
+.field label{font-size:.85rem;font-weight:500}
+.field .opt{color:var(--muted);font-weight:400}
+.inbox{display:flex;align-items:stretch;border:1px solid var(--line);border-radius:10px;background:var(--bg);overflow:hidden}
+.inbox input{flex:1;min-width:0;border:0;background:transparent;color:var(--ink);font:500 1.05rem var(--body);padding:11px 10px;font-variant-numeric:tabular-nums}
+.inbox input:focus{outline:none}
+.inbox:focus-within{border-color:var(--accent)}
+.unit{display:flex;align-items:center;padding:0 10px;color:var(--muted);font-size:.85rem;border-left:1px solid var(--line);white-space:nowrap}
+.hint{font-size:.78rem;color:var(--muted)}
+.section-label{font-size:.78rem;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);grid-column:1/-1;padding-top:8px;border-top:1px dashed var(--line);margin-top:2px}
+.main-result{display:flex;flex-wrap:wrap;align-items:baseline;gap:6px 12px}
+.big{font-family:var(--display);font-weight:600;font-size:2.6rem;line-height:1;font-variant-numeric:tabular-nums}
+.big small{font-size:1.1rem;color:var(--muted);font-weight:500;margin-left:4px}
+.reslabel{width:100%;font-size:.85rem;color:var(--muted);font-weight:500}
+.pill{display:inline-flex;align-items:center;gap:6px;font-size:.85rem;font-weight:600;padding:5px 10px;border-radius:999px}
+.pill::before{content:"";width:8px;height:8px;border-radius:50%;background:currentColor;flex:0 0 auto}
+.pill.ok{color:var(--ok);background:var(--ok-bg)}
+.pill.warn{color:var(--warn);background:var(--warn-bg)}
+.pill.bad{color:var(--bad);background:var(--bad-bg)}
+.pill.info{color:var(--info);background:var(--info-bg)}
+.rows{display:flex;flex-direction:column;margin:0}
+.row{display:flex;justify-content:space-between;gap:12px;padding:9px 0;border-top:1px solid var(--line);align-items:baseline}
+.row.head{padding-top:14px}
+.row.head dt{color:var(--ink);font-weight:600}
+.row dt{color:var(--muted);font-size:.9rem}
+.row dd{margin:0;font-weight:600;font-variant-numeric:tabular-nums;text-align:right;display:flex;gap:8px;align-items:baseline;flex-wrap:wrap;justify-content:flex-end}
+.row dd .pill{font-size:.75rem;padding:3px 8px}
+.notes{display:flex;flex-direction:column;gap:6px;margin:0;padding:0;list-style:none}
+.notes li{font-size:.88rem;padding:8px 10px;border-radius:8px;background:var(--info-bg);color:var(--ink)}
+.notes li.warn{background:var(--warn-bg)}
+.notes li.ok{background:var(--ok-bg)}
+.missing{color:var(--muted);font-size:.95rem;margin:0}
+details{border-top:1px solid var(--line);padding-top:10px}
+summary{cursor:pointer;font-weight:600;font-size:.92rem}
+.formula{font-family:ui-monospace,"SF Mono",Menlo,monospace;font-size:.85rem;background:var(--bg);border-radius:8px;padding:10px;margin:10px 0 0;white-space:pre-wrap;overflow-x:auto}
+.ref{margin:10px 0 0;padding-left:18px;font-size:.88rem;display:flex;flex-direction:column;gap:4px}
+.actions{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.btn{border:1px solid var(--line);background:var(--surface);color:var(--ink);font:500 .88rem var(--body);padding:9px 12px;border-radius:10px;cursor:pointer}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.toast{font-size:.85rem;color:var(--ok);min-height:1.2em}
+.why{display:flex;flex-direction:column;gap:12px}
+.why h3{font-family:var(--display);font-weight:600;font-size:1rem;margin:0 0 3px;color:var(--accent)}
+.why p{margin:0;font-size:.92rem;max-width:65ch}
+.why .block{padding-left:12px;border-left:3px solid var(--line)}
+footer{color:var(--muted);font-size:.8rem;line-height:1.5}
+@media (prefers-reduced-motion:no-preference){.tab{transition:background .15s,color .15s}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="logo" role="img" aria-label="VTA.cc">
+      <svg class="logo-mark" viewBox="0 0 34 34" aria-hidden="true"><rect width="34" height="34" rx="9"/><path d="M9 11l8 13 8-13"/></svg>
+      <span class="logo-text">VTA<span>.cc</span></span>
+    </div>
+    <h1>Klärwerk-Rechner</h1>
+    <p class="sub">Kennwerte für Belebung, Nachklärung und Phosphorfällung, mit Richtwerten nach DWA-A 131 und A 202</p>
+  </header>
+  <nav><div class="tabs" id="tabs" role="tablist" aria-label="Rechner"></div></nav>
+  <section class="card" id="inputCard" aria-labelledby="calcTitle">
+    <h2 id="calcTitle"></h2>
+    <p class="lead" id="calcLead"></p>
+    <div class="fields" id="fields"></div>
+    <div class="actions">
+      <button class="btn" id="btnExample" type="button">Beispielwerte laden</button>
+      <button class="btn" id="btnClear" type="button">Felder leeren</button>
+    </div>
+  </section>
+  <section class="card" id="resultCard" aria-live="polite">
+    <div id="result"></div>
+    <div class="actions">
+      <button class="btn primary" id="btnCopy" type="button">Ergebnis kopieren</button>
+      <span class="toast" id="toast"></span>
+    </div>
+    <details id="formulaBox">
+      <summary>Formel und Richtwerte</summary>
+      <div class="formula" id="formula"></div>
+      <ul class="ref" id="ref"></ul>
+    </details>
+  </section>
+  <section class="card" aria-labelledby="whyTitle">
+    <h2 id="whyTitle">Wofür und warum?</h2>
+    <div class="why" id="why"></div>
+  </section>
+  <footer>
+    Gleiche Größen (z. B. TS Belebung, Zulaufmenge) werden zwischen den Rechnern geteilt und auf diesem Gerät gespeichert. Dezimalkomma und -punkt gehen beide.
+    Die Richtwerte dienen der Betriebsbeurteilung und ersetzen keine Bemessung.
+  </footer>
+</div>
+
+<script>
+(function(){
+  "use strict";
+
+  /* ---------- gemeinsame Eingabegrößen ---------- */
+  const F = {
+    V_BB:  {label:"Volumen Belebung (gesamt)", unit:"m³", ex:"4000"},
+    TS_BB: {label:"TS Belebung", unit:"g/l", ex:"3,7"},
+    Q_US:  {label:"Überschussschlamm-Abzug", unit:"m³/d", ex:"60"},
+    TS_US: {label:"TS Überschussschlamm", unit:"g/l", ex:"8", hint:"Oft gleich TS Rücklaufschlamm"},
+    Q_d:   {label:"Zulaufmenge", unit:"m³/d", ex:"2500"},
+    TS_ab: {label:"Abfiltrierbare Stoffe Ablauf", unit:"mg/l", ex:"10"},
+    T:     {label:"Abwassertemperatur", unit:"°C", ex:"11"},
+    VD:    {label:"Deni-Anteil V_D/V_BB", unit:"%", ex:"40", hint:"Intermittierend: Anteil der Deni-Zeit"},
+    PF:    {label:"Prozessfaktor PF", unit:"–", ex:"1,5", hint:"1,5 (große) bis 2,1 (kleine Anlagen)"},
+    SV:    {label:"Schlammvolumen (abgelesen)", unit:"ml/l", ex:"438"},
+    VF:    {label:"Verdünnungsfaktor", unit:"–", ex:"1", hint:"1 = unverdünnt, 2 = 1:1 verdünnt"},
+    TS_RS: {label:"TS Rücklaufschlamm", unit:"g/l", ex:"10,3"},
+    Q_zu_ls:{label:"Zulauf Biologie", unit:"l/s", ex:"29"},
+    Q_RS_ls:{label:"Rücklaufschlamm (Ist)", unit:"l/s", ex:"19"},
+    Q_h:   {label:"Zulauf Nachklärung", unit:"m³/h", ex:"150", hint:"Für Bemessung: Regenwetterzufluss"},
+    D_NK:  {label:"Durchmesser je Becken", unit:"m", ex:"25"},
+    N_NK:  {label:"Anzahl Becken", unit:"Stk", ex:"2"},
+    A_NK:  {label:"Oberfläche gesamt", unit:"m²", ex:"", hint:"Statt Durchmesser, z. B. bei Rechteckbecken"},
+    VSV:   {label:"Vergleichsschlammvolumen", unit:"ml/l", ex:"438"},
+    BSB:   {label:"BSB₅", unit:"mg/l", ex:"105"},
+    CSB:   {label:"CSB", unit:"mg/l", ex:"359"},
+    N:     {label:"N ges. (oder TKN)", unit:"mg/l", ex:"30,6"},
+    P:     {label:"P ges. Zulauf", unit:"mg/l", ex:"6,6"},
+    P_ab:  {label:"P ges. Ablauf", unit:"mg/l", ex:"0,3", hint:"Ist-Wert oder angestrebter Zielwert"},
+    BSB_L: {label:"BSB₅ Zulauf Biologie", unit:"mg/l", ex:"180"},
+    P_bio: {label:"Biologische P-Elimination (Bio-P)", unit:"mg/l", ex:"0", hint:"Nur mit Bio-P-Becken, sonst 0"},
+    beta:  {label:"Dosierfaktor β (Me : P)", unit:"mol/mol", ex:"1,5", hint:"Simultanfällung meist 1,2–1,5; höher bei sehr niedrigem Ablaufziel"},
+    name1: {label:"Bezeichnung", unit:"", ex:"Eisen(III)-chlorid", text:true},
+    mol1:  {label:"Wirksubstanz Me³⁺", unit:"mol/kg", ex:"2,3", hint:"Laut Datenblatt"},
+    rho1:  {label:"Dichte", unit:"kg/l", ex:"1,42"},
+    pr1:   {label:"Preis", unit:"€/t", ex:""},
+    name2: {label:"Bezeichnung", unit:"", ex:"VTA-Fällmittel", text:true},
+    mol2:  {label:"Wirksubstanz Me³⁺", unit:"mol/kg", ex:"2,8", hint:"Laut Datenblatt"},
+    rho2:  {label:"Dichte", unit:"kg/l", ex:"", hint:"Laut Datenblatt, für Liter-Angabe"},
+    pr2:   {label:"Preis", unit:"€/t", ex:""},
+    Q_ls:  {label:"Durchfluss", unit:"l/s", ex:"29"},
+    C:     {label:"Konzentration", unit:"mg/l", ex:"38", hint:"Für Fracht, z. B. NH₄-N"}
+  };
+
+  /* ---------- Hilfsfunktionen ---------- */
+  const has = (...a) => a.every(x => Number.isFinite(x));
+  const pos = (...a) => a.every(x => Number.isFinite(x) && x > 0);
+  function fmt(n, d){
+    if (!Number.isFinite(n)) return "–";
+    return n.toLocaleString("de-DE",{minimumFractionDigits:d, maximumFractionDigits:d});
+  }
+  function parse(s){
+    if (s == null) return NaN;
+    s = String(s).trim().replace(/\s/g,"");
+    if (s === "") return NaN;
+    if (s.includes(",") && s.includes(".")) s = s.replace(/\./g,"").replace(",",".");
+    else s = s.replace(",",".");
+    const n = Number(s);
+    return Number.isFinite(n) ? n : NaN;
+  }
+  const S = (cls, text) => ({cls, text});
+
+  /* ---------- Rechner ---------- */
+  const CALCS = [
+    {
+      id:"schlammalter", tab:"Schlammalter", title:"Schlammalter",
+      lead:"Wie viele Tage der Belebtschlamm im Mittel in der Anlage bleibt, verglichen mit dem Schlammalter, das Nitrifikation und Denitrifikation brauchen.",
+      fields:[["V_BB"],["TS_BB"],["Q_US"],["TS_US"],["#Ablaufverluste (optional)"],["Q_d",1],["TS_ab",1],["#Vergleich mit erforderlichem Schlammalter"],["T",1],["VD",1],["PF",1]],
+      why:{
+        wofuer:"Das Schlammalter ist die mittlere Aufenthaltszeit der Bakterien in der Anlage. Es ergibt sich aus der Schlammmasse in der Belebung geteilt durch die Schlammmenge, die täglich abgezogen wird (Überschussschlamm plus Verluste über den Ablauf).",
+        warum:"Die Nitrifikanten, die Ammonium zu Nitrat umbauen, wachsen sehr langsam, bei Kälte noch langsamer. Ist das Schlammalter kürzer als ihre Verdopplungszeit, werden sie ausgeschwemmt und NH₄-N steigt im Ablauf. Ein zu hohes Schlammalter bringt mehr Schlammmasse, belastet die Nachklärung und fördert Fadenbakterien wie Microthrix.",
+        praxis:"Das Schlammalter steuert der Betreiber fast nur über den Überschussschlamm-Abzug. Im Winter weniger abziehen, damit das Schlammalter steigt. Den Vergleich mit dem erforderlichen Wert nach DWA-A 131 vor allem im Herbst prüfen, wenn die Temperatur unter 12 °C fällt."
+      },
+      compute(v){
+        if (!pos(v.V_BB,v.TS_BB,v.Q_US,v.TS_US)) return null;
+        const M = v.V_BB*v.TS_BB;
+        const lossAb = has(v.Q_d,v.TS_ab) ? v.Q_d*v.TS_ab/1000 : 0;
+        const ab = v.Q_US*v.TS_US + lossAb;
+        const t = M/ab;
+        const r = {main:{label:"Vorhandenes Schlammalter", value:t, unit:"d", d:1}, rows:[], notes:[]};
+        r.rows.push(["Schlammmasse Belebung", fmt(M,0)+" kg"]);
+        r.rows.push(["Schlammabzug gesamt", fmt(ab,0)+" kg/d"]);
+        if (lossAb>0) r.rows.push(["davon über Ablauf", fmt(lossAb,0)+" kg/d"]);
+        const vd = has(v.VD) ? v.VD : 0;
+        if (has(v.T,v.PF) && vd>=0 && vd<90){
+          const aer = v.PF*3.4*Math.pow(1.103,15-v.T);
+          const erf = aer/(1-vd/100);
+          r.rows.push(["Erf. aerobes Schlammalter", fmt(aer,1)+" d"]);
+          r.rows.push(["Erf. Schlammalter gesamt", fmt(erf,1)+" d"]);
+          const qMax = (M/erf - lossAb)/v.TS_US;
+          if (qMax>0) r.rows.push(["Max. ÜS-Abzug für erf. Schlammalter", fmt(qMax,1)+" m³/d"]);
+          if (t>=erf) r.main.status=S("ok","Ausreichend");
+          else if (t>=0.8*erf) r.main.status=S("warn","Knapp");
+          else r.main.status=S("bad","Zu niedrig");
+          if (t<erf) r.notes.push({cls:"warn", text:"Überschussschlamm-Abzug reduzieren oder TS in der Belebung anheben, Nachklärung dabei im Blick behalten."});
+        } else {
+          r.main.status=S("info","Temperatur und PF eintragen für Bewertung");
+        }
+        return r;
+      },
+      formula:"t_TS = V_BB × TS_BB / (Q_ÜS × TS_ÜS + Q_d × X_TS,AN)\n\nErforderlich (DWA-A 131):\nt_TS,aerob = PF × 3,4 × 1,103^(15 − T)\nt_TS,erf = t_TS,aerob / (1 − V_D/V_BB)",
+      ref:["Nur Kohlenstoffabbau: ca. 4–5 d","Nitrifikation bei 10–12 °C: meist 8–12 d aerob","Nitrifikation + Denitrifikation: meist 12–20 d","Aerobe Schlammstabilisierung: ≥ 25 d"]
+    },
+    {
+      id:"schlammindex", tab:"Schlammindex", title:"Schlammindex (ISV)",
+      lead:"Wie gut sich der Belebtschlamm absetzt. Bei Schlammvolumen über 250 ml/l verdünnt messen.",
+      fields:[["SV"],["VF"],["TS_BB"]],
+      why:{
+        wofuer:"Der Schlammindex gibt an, wie viel Raum 1 g Belebtschlamm nach 30 Minuten Absetzen im Messzylinder einnimmt. Er ist die wichtigste Kennzahl für das Absetzverhalten.",
+        warum:"Ein hoher Index heißt: Der Schlamm ist locker und voluminös, meist durch Fadenbakterien (Blähschlamm). Dann braucht er in der Nachklärung viel Platz, der Schlammspiegel steigt und bei Regen treibt Schlamm in den Ablauf. Das gefährdet die Überwachungswerte für CSB, Phosphor und abfiltrierbare Stoffe.",
+        praxis:"Täglich messen und als Trend beobachten. Steigt der Index über einige Tage, Schlamm mikroskopieren lassen. Treibt Schlamm auf, obwohl der Index gut ist, liegt es meist an Denitrifikation in der Nachklärung oder an Schwimmschlamm, nicht am Absetzverhalten."
+      },
+      compute(v){
+        if (!pos(v.SV,v.TS_BB)) return null;
+        const f = pos(v.VF) ? v.VF : 1;
+        const vsv = v.SV*f, isv = vsv/v.TS_BB;
+        const r = {main:{label:"Schlammindex", value:isv, unit:"ml/g", d:0}, rows:[["Vergleichsschlammvolumen", fmt(vsv,0)+" ml/l"]], notes:[]};
+        if (isv<=100) r.main.status=S("ok","Sehr gut absetzbar");
+        else if (isv<=150) r.main.status=S("ok","Normal");
+        else if (isv<=200) r.main.status=S("warn","Erhöht, Blähschlamm-Tendenz");
+        else r.main.status=S("bad","Blähschlamm");
+        if (v.SV>250) r.notes.push({cls:"warn", text:"Abgelesenes Schlammvolumen über 250 ml/l: verdünnt messen (Ziel 100–250 ml/l im Zylinder), sonst ist der Index ungenau."});
+        if (isv<=150) r.notes.push({cls:"", text:"Guter Index, aber Schlamm treibt trotzdem auf? Dann eher Denitrifikation in der Nachklärung oder Schwimmschlamm (z. B. Microthrix) prüfen."});
+        return r;
+      },
+      formula:"VSV = SV × Verdünnungsfaktor\nISV = VSV / TS_BB",
+      ref:["≤ 100 ml/g: sehr gut","100–150 ml/g: normal","150–200 ml/g: erhöht","> 200 ml/g: Blähschlamm"]
+    },
+    {
+      id:"ruecklauf", tab:"Rücklaufverhältnis", title:"Rücklaufverhältnis",
+      lead:"Aus der TS-Bilanz ergibt sich, wie viel Rücklaufschlamm tatsächlich gefördert wird.",
+      fields:[["TS_BB"],["TS_RS"],["#Vergleich mit Durchflüssen (optional)"],["Q_zu_ls",1],["Q_RS_ls",1]],
+      why:{
+        wofuer:"Das Rücklaufverhältnis ist die Rücklaufschlammmenge geteilt durch den Zulauf. Aus den TS-Werten von Belebung und Rücklaufschlamm lässt es sich unabhängig von Durchflussmessern berechnen.",
+        warum:"Zu wenig Rücklaufschlamm lässt den Schlamm lange in der Nachklärung liegen. Der Schlammspiegel steigt, und bei Nitrat im Wasser bilden die Bakterien am Boden Stickstoffgas. Die Bläschen heben Flocken an die Oberfläche (Schwimmschlamm). Zu viel Rücklaufschlamm belastet die Nachklärung hydraulisch und wirbelt Schlamm auf.",
+        praxis:"Weicht das Bilanz-Ergebnis deutlich vom gemessenen Durchfluss ab, stimmt entweder die Durchflussmessung nicht, oder die Pumpen fördern anders als angezeigt (z. B. Abschaltlogik, Verschleiß, Verstopfung). Ein Eindickfaktor über ca. 3 zeigt, dass zu wenig abgezogen wird."
+      },
+      compute(v){
+        if (!pos(v.TS_BB,v.TS_RS)) return null;
+        if (v.TS_RS<=v.TS_BB) return {error:"TS Rücklaufschlamm muss größer sein als TS Belebung."};
+        const rv = v.TS_BB/(v.TS_RS-v.TS_BB);
+        const r = {main:{label:"Rücklaufverhältnis aus TS-Bilanz", value:rv, unit:"", d:2}, rows:[], notes:[]};
+        r.rows.push(["Eindickfaktor TS_RS / TS_BB", fmt(v.TS_RS/v.TS_BB,1)]);
+        if (rv<0.5) r.main.status=S("bad","Zu niedrig");
+        else if (rv<0.75) r.main.status=S("warn","Knapp");
+        else if (rv<=1.5) r.main.status=S("ok","Im Richtbereich");
+        else r.main.status=S("warn","Hoch, Nachklärung hydraulisch belastet");
+        if (pos(v.Q_zu_ls)){
+          r.rows.push(["RS-Menge laut Bilanz", fmt(rv*v.Q_zu_ls,1)+" l/s"]);
+          r.rows.push(["RS-Menge für RV 0,75 / 1,0", fmt(0.75*v.Q_zu_ls,1)+" / "+fmt(v.Q_zu_ls,1)+" l/s"]);
+          r.rows.push(["TS_RS bei RV 1,0 (Ziel)", fmt(2*v.TS_BB,1)+" g/l"]);
+          if (pos(v.Q_RS_ls)) r.rows.push(["RV aus Durchfluss (Ist)", fmt(v.Q_RS_ls/v.Q_zu_ls,2)]);
+        }
+        if (rv<0.75) r.notes.push({cls:"warn", text:"Der Schlamm bleibt lange in der Nachklärung. Bei Nitrat über ca. 5 mg/l droht Schwimmschlamm durch Denitrifikation. Rücklaufschlamm erhöhen."});
+        return r;
+      },
+      formula:"RV = TS_BB / (TS_RS − TS_BB)\nQ_RS = RV × Q_zu",
+      ref:["Richtwert Trockenwetter: RV 0,75–1,0","Eindickfaktor über ca. 3: Schlamm liegt lange in der Nachklärung","Bei RV 1,0 ist TS_RS ≈ 2 × TS_BB"]
+    },
+    {
+      id:"nachklaerung", tab:"Nachklärung", title:"Nachklärung",
+      lead:"Oberflächenbeschickung und Schlammvolumenbeschickung der Nachklärbecken.",
+      fields:[["Q_h"],["VSV"],["D_NK"],["N_NK"],["A_NK",1]],
+      why:{
+        wofuer:"Zeigt, wie viel Wasser und wie viel Schlammvolumen pro Quadratmeter Beckenoberfläche und Stunde in die Nachklärung kommen.",
+        warum:"Die Nachklärung trennt den Belebtschlamm vom gereinigten Wasser. Ist die Schlammvolumenbeschickung zu hoch, reicht die Fläche nicht aus: Der Schlammspiegel steigt bis zum Überlauf und Schlamm geht ins Gewässer. Das passiert typischerweise bei Regenwetter mit schlecht absetzbarem Schlamm.",
+        praxis:"Mit dem maximalen Regenwetterzufluss rechnen, um die Reserve zu kennen. Der Wert „max. Zulauf bei q_SV 500“ zeigt, ab welchem Zufluss es kritisch wird. Hilft im Ernstfall: TS in der Belebung senken oder das Absetzverhalten (Schlammindex) verbessern."
+      },
+      compute(v){
+        let A = NaN;
+        if (pos(v.A_NK)) A = v.A_NK;
+        else if (pos(v.D_NK,v.N_NK)) A = v.N_NK*Math.PI*v.D_NK*v.D_NK/4;
+        if (!pos(v.Q_h,v.VSV) || !pos(A)) return null;
+        const qA = v.Q_h/A, qSV = qA*v.VSV;
+        const r = {main:{label:"Schlammvolumenbeschickung q_SV", value:qSV, unit:"l/(m²·h)", d:0}, rows:[], notes:[]};
+        r.rows.push(["Oberfläche gesamt", fmt(A,0)+" m²"]);
+        r.rows.push(["Oberflächenbeschickung q_A", fmt(qA,2)+" m/h", qA<=1.6 ? S("ok","ok") : S("bad","über 1,6")]);
+        r.rows.push(["Max. Zulauf bei q_SV 500", fmt(500/v.VSV*A,0)+" m³/h"]);
+        if (qSV<=500) r.main.status=S("ok","Unter 500");
+        else if (qSV<=650) r.main.status=S("warn","Nur bei vertikal durchströmten Becken zulässig");
+        else r.main.status=S("bad","Überlastet");
+        r.notes.push({cls:"", text:"Für die Bemessung mit dem Regenwetterzufluss rechnen. Bei Trockenwetter sind die Werte meist deutlich niedriger."});
+        return r;
+      },
+      formula:"A = n × π × D² / 4\nq_A = Q / A\nq_SV = q_A × VSV",
+      ref:["Horizontal durchströmt: q_SV ≤ 500 l/(m²·h), q_A ≤ 1,6 m/h","Vertikal durchströmt: q_SV bis ca. 650 l/(m²·h)"]
+    },
+    {
+      id:"naehrstoffe", tab:"BSB/N", title:"Nährstoffverhältnisse",
+      lead:"Reicht der Kohlenstoff für die Denitrifikation? Werte im Zulauf zur Biologie, also nach der Vorklärung.",
+      fields:[["BSB"],["N"],["CSB",1],["P",1]],
+      why:{
+        wofuer:"Vergleicht den abbaubaren Kohlenstoff (BSB₅, CSB) mit dem Stickstoff im Zulauf. Das BSB₅/CSB-Verhältnis zeigt zusätzlich, wie leicht der Kohlenstoff abbaubar ist.",
+        warum:"Die Denitrifikanten brauchen Kohlenstoff, um Nitrat zu Stickstoffgas abzubauen: grob 2,5–3 mg BSB₅ pro mg Nitrat-Stickstoff. Fehlt Kohlenstoff, bleibt Nitrat übrig. Dann steigt N ges. im Ablauf, und Nitrat in der Nachklärung kann Schwimmschlamm auslösen.",
+        praxis:"Die Probe sollte hinter der Vorklärung genommen werden. Ist das Verhältnis zu niedrig: Vorklärung verkürzen oder teilweise umfahren, Trübwasser aus der Faulung gleichmäßig verteilt zugeben oder eine externe Kohlenstoffquelle dosieren."
+      },
+      compute(v){
+        if (!pos(v.BSB,v.N)) return null;
+        const bn = v.BSB/v.N;
+        const r = {main:{label:"BSB₅ / N", value:bn, unit:"", d:1}, rows:[], notes:[]};
+        if (bn>=5) r.main.status=S("ok","Gut");
+        else if (bn>=4) r.main.status=S("ok","Ausreichend");
+        else if (bn>=3) r.main.status=S("warn","Knapp, Deni begrenzt");
+        else r.main.status=S("bad","Kritisch");
+        if (pos(v.CSB)){
+          const cn = v.CSB/v.N, bc = v.BSB/v.CSB;
+          r.rows.push(["CSB / N", fmt(cn,1), cn>=10?S("ok","gut"):cn>=8?S("ok","ausreichend"):S("warn","knapp")]);
+          r.rows.push(["BSB₅ / CSB", fmt(bc,2), bc>=0.5?S("ok","gut abbaubar"):bc>=0.3?S("warn","mittel"):S("bad","schwer abbaubar")]);
+        }
+        if (pos(v.P)) r.rows.push(["BSB₅ : N : P", "100 : "+fmt(100*v.N/v.BSB,0)+" : "+fmt(100*v.P/v.BSB,1)]);
+        if (bn<4) r.notes.push({cls:"warn", text:"Möglich: Vorklärung verkürzen oder teilweise umfahren, externe Kohlenstoffquelle, Trübwasser aus der Faulung gleichmäßig zugeben."});
+        r.notes.push({cls:"", text:"Wird vor der Vorklärung gemessen, liegt das Verhältnis in der Biologie niedriger: die Vorklärung entfernt ca. 25–35 % BSB, aber kaum Stickstoff."});
+        return r;
+      },
+      formula:"BSB₅/N = BSB₅ / N_ges\nCSB/N = CSB / N_ges\nBSB₅/CSB = Abbaubarkeit",
+      ref:["BSB₅/N ≥ 5 gut, 4–5 ausreichend, 3–4 knapp, < 3 kritisch","CSB/N ≥ 8–10 ausreichend","BSB₅/CSB ≈ 0,5 bei normalem kommunalem Abwasser","Bedarf Bakterien BSB₅ : N : P ≈ 100 : 5 : 1"]
+    },
+    {
+      id:"belastung", tab:"Belastung", title:"Schlamm- und Raumbelastung",
+      lead:"Wie stark die Belebung organisch belastet ist.",
+      fields:[["Q_d"],["BSB_L"],["V_BB"],["TS_BB"]],
+      why:{
+        wofuer:"Die Schlammbelastung sagt, wie viel „Futter“ (BSB₅) jedes Kilogramm Belebtschlamm pro Tag bekommt. Die Raumbelastung bezieht die Fracht auf das Beckenvolumen.",
+        warum:"Die Belastung entscheidet, ob die Anlage nitrifizieren kann, wie viel Schlamm entsteht und wie stabil er ist. Eine plötzlich steigende Belastung, etwa durch einen Industrieeinleiter, erklärt oft schlechtere Ablaufwerte. Die Einwohnerwerte zeigen, wie nah die Anlage an ihrer Ausbaugröße läuft.",
+        praxis:"Die berechneten Einwohnerwerte mit der Ausbaugröße der Anlage vergleichen. Liegt die Schlammbelastung dauerhaft über ca. 0,15, wird es für die Nitrifikation im Winter eng."
+      },
+      compute(v){
+        if (!pos(v.Q_d,v.BSB_L,v.V_BB,v.TS_BB)) return null;
+        const B = v.Q_d*v.BSB_L/1000, BR = B/v.V_BB, BTS = B/(v.V_BB*v.TS_BB);
+        const r = {main:{label:"Schlammbelastung B_TS", value:BTS, unit:"kg BSB₅/(kg TS·d)", d:3}, rows:[], notes:[]};
+        r.rows.push(["BSB₅-Fracht", fmt(B,0)+" kg/d"]);
+        r.rows.push(["Einwohnerwerte (60 g/EW·d)", fmt(B/0.06,0)+" EW"]);
+        r.rows.push(["Raumbelastung B_R", fmt(BR,2)+" kg/(m³·d)"]);
+        r.rows.push(["Aufenthaltszeit Belebung", fmt(v.V_BB/v.Q_d*24,1)+" h"]);
+        if (BTS<=0.05) r.main.status=S("ok","Schwach belastet, Stabilisierung möglich");
+        else if (BTS<=0.15) r.main.status=S("ok","Nitrifikation möglich");
+        else if (BTS<=0.3) r.main.status=S("warn","Nitrifikation unsicher");
+        else r.main.status=S("bad","Hoch belastet");
+        return r;
+      },
+      formula:"B_d = Q_d × BSB₅ / 1000\nB_R = B_d / V_BB\nB_TS = B_d / (V_BB × TS_BB)",
+      ref:["≤ 0,05: Schlammstabilisierung","0,05–0,15: Nitrifikation und Denitrifikation","> 0,3: nur Kohlenstoffabbau"]
+    },
+    {
+      id:"phosphor", tab:"P-Fracht", title:"Phosphor-Fracht",
+      lead:"Wie viel Phosphor täglich ankommt und abfließt, und wie viel die Anlage davon entfernt.",
+      fields:[["Q_d"],["P"],["P_ab",1]],
+      why:{
+        wofuer:"Die Fracht ist die Menge Phosphor pro Tag: Konzentration mal Zulaufmenge. Aus Zu- und Ablauffracht ergibt sich der Eliminationsgrad.",
+        warum:"Phosphor ist im Gewässer der wichtigste Nährstoff für Algen. Deshalb gibt es für Kläranlagen Überwachungswerte für P ges., und die Ablauffracht geht in die Abwasserabgabe ein. Die Zulauffracht ist außerdem die Grundlage für den Fällmittelbedarf: Konzentrationen allein täuschen, weil Regenwetter sie verdünnt, die Fracht aber kaum ändert.",
+        praxis:"Frachten über mehrere Tage oder einen Monat mitteln. Die Einwohnerwerte über P (1,8 g/EW·d) mit denen über BSB₅ vergleichen: Liegt P deutlich höher, gibt es oft einen phosphorreichen Einleiter oder Rückbelastung aus der Schlammbehandlung."
+      },
+      compute(v){
+        if (!pos(v.Q_d,v.P)) return null;
+        const zu = v.Q_d*v.P/1000;
+        const r = {main:{label:"P-Fracht Zulauf", value:zu, unit:"kg P/d", d:1}, rows:[], notes:[]};
+        r.rows.push(["P-Fracht Zulauf pro Jahr", fmt(zu*365/1000,2)+" t/a"]);
+        r.rows.push(["Einwohnerwerte (1,8 g P/EW·d)", fmt(zu/0.0018,0)+" EW"]);
+        if (has(v.P_ab) && v.P_ab>=0){
+          const ab = v.Q_d*v.P_ab/1000, eta = (1-v.P_ab/v.P)*100;
+          r.rows.push(["P-Fracht Ablauf", fmt(ab,2)+" kg/d"]);
+          r.rows.push(["P-Fracht Ablauf pro Jahr", fmt(ab*365,0)+" kg/a"]);
+          r.rows.push(["Entfernter Phosphor", fmt(zu-ab,1)+" kg/d"]);
+          r.main.status = eta>=90 ? S("ok", fmt(eta,0)+" % eliminiert") : eta>=80 ? S("warn", fmt(eta,0)+" % eliminiert") : S("bad", fmt(eta,0)+" % eliminiert");
+        } else {
+          r.main.status = S("info","Ablaufwert eintragen für Eliminationsgrad");
+        }
+        r.notes.push({cls:"", text:"Den Fällmittelbedarf zu dieser Fracht rechnet der Reiter „Fällmittel“."});
+        return r;
+      },
+      formula:"Fracht [kg/d] = Q [m³/d] × P [mg/l] / 1000\nElimination [%] = (1 − P_ab / P_zu) × 100",
+      ref:["Kommunales Abwasser: ca. 1,8 g P je Einwohner und Tag","Gute Anlagen mit Fällung: Elimination meist über 90 %"]
+    },
+    {
+      id:"faellmittel", tab:"Fällmittel", title:"Fällmittel-Dosierung",
+      lead:"Fällmittelbedarf aus der Phosphor-Bilanz nach DWA-A 202, mit Vergleich von zwei Produkten.",
+      fields:[["Q_d"],["P"],["P_ab"],["BSB_L",1],["P_bio",1],["beta"],
+              ["#Produkt 1"],["name1"],["mol1"],["rho1",1],["pr1",1],
+              ["#Produkt 2 (Vergleich, optional)"],["name2",1],["mol2",1],["rho2",1],["pr2",1]],
+      why:{
+        wofuer:"Berechnet, wie viel Phosphor chemisch gefällt werden muss und wie viel Fällmittel dafür nötig ist. Zwei Produkte lassen sich direkt vergleichen.",
+        warum:"Fällmittel wirken über ihre Metall-Ionen (Fe³⁺ oder Al³⁺): Ein Mol Metall bindet etwa ein Mol Phosphat. Entscheidend ist also nicht die Menge Produkt, sondern wie viel Mol Wirksubstanz pro Kilogramm darin steckt. Ein Produkt mit 2,8 mol/kg braucht für dieselbe Fällung rund 18 % weniger Produkt als eines mit 2,3 mol/kg. Zu wenig Fällmittel gefährdet den P-Überwachungswert. Zu viel kostet Geld, erzeugt mehr Schlamm und verbraucht Säurekapazität, was den pH-Wert und die Nitrifikation belasten kann.",
+        praxis:"Vom Phosphor im Zulauf wird zuerst abgezogen, was die Bakterien ohnehin einbauen (ca. 1 % des BSB₅) und was im Ablauf bleiben darf. Nur der Rest muss gefällt werden. Den Dosierfaktor β anhand der Ablaufwerte nachjustieren: Werte deutlich unter dem Ziel heißen, es wird zu viel dosiert. Aluminiumhaltige Fällmittel wirken zusätzlich gegen Microthrix-Schwimmschlamm."
+      },
+      compute(v,t){
+        if (!pos(v.Q_d,v.P,v.mol1)) return null;
+        const pab = has(v.P_ab) && v.P_ab>=0 ? v.P_ab : 0;
+        const xbm = pos(v.BSB_L) ? 0.01*v.BSB_L : 0;
+        const xbio = has(v.P_bio) && v.P_bio>0 ? v.P_bio : 0;
+        const pf = v.P - pab - xbm - xbio;
+        if (pf<=0) return {error:"Nach Abzug von Ablaufwert und biologischem P-Einbau bleibt kein Phosphor zum Fällen. Werte prüfen."};
+        const beta = pos(v.beta) ? v.beta : 1.5;
+        const pkg = v.Q_d*pf/1000;
+        const molP = pkg*1000/30.97;
+        const molMe = beta*molP;
+        const r = {main:{label:"Zu fällender Phosphor", value:pkg, unit:"kg P/d", d:1, status:S("info", fmt(pf,2)+" mg/l zu fällen")}, rows:[], notes:[]};
+        r.rows.push(["P-Einbau Biomasse (1 % BSB₅)", fmt(xbm,2)+" mg/l"]);
+        r.rows.push(["Phosphor zu fällen", fmt(molP/1000,2)+" kmol/d"]);
+        r.rows.push(["Metallbedarf bei β "+fmt(beta,1), fmt(molMe/1000,2)+" kmol/d"]);
+        const prods = [
+          {name:(t.name1||"").trim()||"Produkt 1", mol:v.mol1, rho:v.rho1, pr:v.pr1},
+          {name:(t.name2||"").trim()||"Produkt 2", mol:v.mol2, rho:v.rho2, pr:v.pr2}
+        ].filter(p => pos(p.mol));
+        prods.forEach(p => {
+          p.kg = molMe/p.mol;
+          p.ta = p.kg*365/1000;
+          r.rows.push({head:true, k:p.name+" ("+fmt(p.mol,2)+" mol/kg)", v:""});
+          r.rows.push(["Menge pro Tag", fmt(p.kg,0)+" kg/d"]);
+          if (pos(p.rho)){
+            const l = p.kg/p.rho;
+            r.rows.push(["Volumen pro Tag", fmt(l,0)+" l/d"]);
+            r.rows.push(["Dosierleistung", fmt(l/24,1)+" l/h"]);
+          }
+          r.rows.push(["Menge pro Jahr", fmt(p.ta,1)+" t/a"]);
+          r.rows.push(["Spezifisch", fmt(p.kg/pkg,1)+" kg Produkt / kg P"]);
+          if (pos(p.pr)){ p.cost = p.ta*p.pr; r.rows.push(["Kosten pro Jahr", fmt(p.cost,0)+" €/a"]); }
+        });
+        if (prods.length===2){
+          const a = prods[0], b = prods[1];
+          const d = (b.kg-a.kg)/a.kg*100;
+          const word = d<0 ? "weniger" : "mehr";
+          r.notes.push({cls: d<0 ? "ok" : "warn", text:b.name+" braucht "+fmt(Math.abs(d),0)+" % "+word+" Produkt als "+a.name+" ("+fmt(Math.abs(b.ta-a.ta),1)+" t/a "+word+"), bei gleicher Metallmenge und damit gleicher Fällwirkung."});
+          if (Number.isFinite(a.cost) && Number.isFinite(b.cost)){
+            const dc = b.cost-a.cost;
+            r.notes.push({cls: dc<0 ? "ok" : "warn", text:"Kostenunterschied: "+b.name+" ist "+fmt(Math.abs(dc),0)+" € pro Jahr "+(dc<0?"günstiger":"teurer")+"."});
+          }
+        }
+        if (pab<0.5 && beta<1.5) r.notes.push({cls:"warn", text:"Ablaufziel unter 0,5 mg/l: β von 1,5 oder mehr ist meist nötig."});
+        r.notes.push({cls:"", text:"Ist die Wirksubstanz im Datenblatt in mol/l angegeben, durch die Dichte teilen, um mol/kg zu erhalten."});
+        return r;
+      },
+      formula:"P_fäll = P_zu − P_ab − X_P,BM − X_P,BioP\nX_P,BM ≈ 0,01 × BSB₅,ZB\n\nP [mol/d] = Q_d × P_fäll / 30,97\nMe [mol/d] = β × P [mol/d]\nProdukt [kg/d] = Me [mol/d] / Wirksubstanz [mol/kg]\nProdukt [l/d] = kg/d / Dichte",
+      ref:["Molmasse Phosphor: 30,97 g/mol","Simultanfällung: β meist 1,2–1,5","Fe³⁺ und Al³⁺ binden je 1 mol Phosphat pro mol Metall","Eisen(III)-chlorid 40 %: ca. 1,42 kg/l"]
+    },
+    {
+      id:"umrechner", tab:"Umrechner", title:"Durchfluss und Fracht",
+      lead:"Durchfluss umrechnen und Frachten aus Konzentrationen bestimmen.",
+      fields:[["Q_ls"],["C",1]],
+      why:{
+        wofuer:"Rechnet Durchflüsse zwischen l/s, m³/h und m³/d um und bestimmt die Tagesfracht eines Stoffs.",
+        warum:"Prozessleitsysteme zeigen Durchflüsse oft in l/s, Laborberichte und Bemessung arbeiten mit m³/d. Frachten sind für Vergleiche und Bilanzen aussagekräftiger als Konzentrationen, weil sie Verdünnung durch Regen herausrechnen.",
+        praxis:"Praktisch, um Anzeigen im Prozessbild schnell mit Tageswerten aus dem Monatsbericht zu vergleichen."
+      },
+      compute(v){
+        if (!pos(v.Q_ls)) return null;
+        const d = v.Q_ls*86.4;
+        const r = {main:{label:"Tagesmenge", value:d, unit:"m³/d", d:0}, rows:[], notes:[]};
+        r.rows.push(["Stundenmenge", fmt(v.Q_ls*3.6,1)+" m³/h"]);
+        if (pos(v.C)) r.rows.push(["Fracht", fmt(d*v.C/1000,1)+" kg/d"]);
+        return r;
+      },
+      formula:"1 l/s = 3,6 m³/h = 86,4 m³/d\nFracht [kg/d] = Q [m³/d] × c [mg/l] / 1000",
+      ref:[]
+    }
+  ];
+
+  /* ---------- Zustand ---------- */
+  const store = {
+    get(k){ try { return localStorage.getItem(k); } catch(e){ return null; } },
+    set(k,v){ try { localStorage.setItem(k,v); } catch(e){} }
+  };
+  const vals = {};
+  Object.keys(F).forEach(k => {
+    const s = store.get("kwr."+k);
+    vals[k] = s !== null ? s : F[k].ex;
+  });
+
+  let current = CALCS[0];
+  let lastText = "";
+
+  /* ---------- Darstellung ---------- */
+  const tabsEl = document.getElementById("tabs");
+  CALCS.forEach(c => {
+    const b = document.createElement("button");
+    b.className = "tab"; b.type = "button"; b.setAttribute("role","tab");
+    b.id = "tab-"+c.id; b.textContent = c.tab;
+    b.addEventListener("click", () => { location.hash = c.id; });
+    tabsEl.appendChild(b);
+  });
+
+  function renderCalc(){
+    document.querySelectorAll(".tab").forEach(t => t.setAttribute("aria-selected", t.id === "tab-"+current.id ? "true":"false"));
+    const active = document.getElementById("tab-"+current.id);
+    if (active && active.scrollIntoView) active.scrollIntoView({block:"nearest", inline:"nearest"});
+    document.getElementById("calcTitle").textContent = current.title;
+    document.getElementById("calcLead").textContent = current.lead;
+    const box = document.getElementById("fields");
+    box.innerHTML = "";
+    current.fields.forEach(([key,opt]) => {
+      if (key.startsWith("#")){
+        const s = document.createElement("div"); s.className="section-label"; s.textContent = key.slice(1);
+        box.appendChild(s); return;
+      }
+      const f = F[key];
+      const id = "in-"+current.id+"-"+key;
+      const wrap = document.createElement("div"); wrap.className="field";
+      const lab = document.createElement("label"); lab.htmlFor = id; lab.textContent = f.label;
+      if (opt){ const o=document.createElement("span"); o.className="opt"; o.textContent=" (optional)"; lab.appendChild(o); }
+      const ib = document.createElement("div"); ib.className="inbox";
+      const inp = document.createElement("input");
+      inp.id = id; inp.type="text"; inp.autocomplete="off"; inp.value = vals[key] || "";
+      inp.inputMode = f.text ? "text" : "decimal";
+      inp.placeholder = f.ex ? "z. B. "+f.ex : "";
+      inp.addEventListener("input", () => { vals[key] = inp.value; store.set("kwr."+key, inp.value); renderResult(); });
+      ib.appendChild(inp);
+      if (f.unit){ const u = document.createElement("span"); u.className="unit"; u.textContent = f.unit; ib.appendChild(u); }
+      wrap.append(lab,ib);
+      if (f.hint){ const h=document.createElement("span"); h.className="hint"; h.textContent=f.hint; wrap.appendChild(h); }
+      box.appendChild(wrap);
+    });
+    document.getElementById("formula").textContent = current.formula;
+    const ref = document.getElementById("ref"); ref.innerHTML="";
+    current.ref.forEach(t => { const li=document.createElement("li"); li.textContent=t; ref.appendChild(li); });
+    ref.hidden = current.ref.length === 0;
+    const why = document.getElementById("why"); why.innerHTML="";
+    [["Wofür ist die Berechnung?", current.why.wofuer],["Warum ist das wichtig?", current.why.warum],["Praxis-Tipp", current.why.praxis]].forEach(([h,p]) => {
+      if (!p) return;
+      const b=document.createElement("div"); b.className="block";
+      const hh=document.createElement("h3"); hh.textContent=h;
+      const pp=document.createElement("p"); pp.textContent=p;
+      b.append(hh,pp); why.appendChild(b);
+    });
+    renderResult();
+  }
+
+  function pill(st){
+    const p = document.createElement("span"); p.className = "pill "+st.cls; p.textContent = st.text; return p;
+  }
+
+  function renderResult(){
+    const v = {}, t = {};
+    current.fields.forEach(([k]) => {
+      if (k.startsWith("#")) return;
+      if (F[k].text) t[k] = vals[k]; else v[k] = parse(vals[k]);
+    });
+    const out = document.getElementById("result");
+    out.innerHTML = "";
+    document.getElementById("toast").textContent = "";
+    let r;
+    try { r = current.compute(v,t); } catch(e){ r = {error:"Eingaben prüfen."}; }
+    if (!r || r.error){
+      const p = document.createElement("p"); p.className="missing";
+      p.textContent = r && r.error ? r.error : "Bitte alle Pflichtfelder mit Werten größer 0 ausfüllen.";
+      out.appendChild(p); lastText=""; return;
+    }
+    const m = r.main;
+    const mr = document.createElement("div"); mr.className="main-result";
+    const lab = document.createElement("div"); lab.className="reslabel"; lab.textContent = m.label;
+    const big = document.createElement("div"); big.className="big"; big.textContent = fmt(m.value,m.d);
+    if (m.unit){ const sm=document.createElement("small"); sm.textContent=m.unit; big.appendChild(sm); }
+    mr.append(lab,big);
+    if (m.status) mr.appendChild(pill(m.status));
+    out.appendChild(mr);
+
+    const lines = [current.title+": "+m.label+" "+fmt(m.value,m.d)+(m.unit?" "+m.unit:"")+(m.status?" ("+m.status.text+")":"")];
+    if (r.rows.length){
+      const dl = document.createElement("dl"); dl.className="rows";
+      r.rows.forEach(item => {
+        const row=document.createElement("div"); row.className="row";
+        const dt=document.createElement("dt"); const dd=document.createElement("dd");
+        if (!Array.isArray(item)){
+          row.classList.add("head"); dt.textContent=item.k; dd.textContent=item.v;
+          lines.push(""); lines.push(item.k);
+        } else {
+          const [k,val,st] = item;
+          dt.textContent=k; dd.textContent=val;
+          if (st) dd.appendChild(pill(st));
+          lines.push(k+": "+val+(st?" ("+st.text+")":""));
+        }
+        row.append(dt,dd); dl.appendChild(row);
+      });
+      out.appendChild(dl);
+    }
+    if (r.notes && r.notes.length){
+      const ul=document.createElement("ul"); ul.className="notes";
+      r.notes.forEach(n => { const li=document.createElement("li"); if(n.cls) li.className=n.cls; li.textContent=n.text; ul.appendChild(li); });
+      out.appendChild(ul);
+      lines.push("");
+      r.notes.forEach(n => lines.push("• "+n.text));
+    }
+    const inputs = current.fields.filter(([k]) => !k.startsWith("#") && !F[k].text && Number.isFinite(v[k])).map(([k]) => F[k].label+" "+vals[k]+" "+F[k].unit);
+    lastText = lines.join("\n")+"\n\nEingaben: "+inputs.join("; ");
+  }
+
+  function route(){
+    const h = (location.hash || "").replace("#","");
+    current = CALCS.find(c => c.id === h) || CALCS[0];
+    renderCalc();
+  }
+
+  document.getElementById("btnExample").addEventListener("click", () => {
+    current.fields.forEach(([k]) => { if (!k.startsWith("#")){ vals[k] = F[k].ex; store.set("kwr."+k, F[k].ex); } });
+    renderCalc();
+  });
+  document.getElementById("btnClear").addEventListener("click", () => {
+    current.fields.forEach(([k]) => { if (!k.startsWith("#")){ vals[k] = ""; store.set("kwr."+k, ""); } });
+    renderCalc();
+    const first = document.querySelector("#fields input"); if (first) first.focus();
+  });
+  document.getElementById("btnCopy").addEventListener("click", async () => {
+    const t = document.getElementById("toast");
+    if (!lastText){ t.textContent = "Noch kein Ergebnis."; return; }
+    try { await navigator.clipboard.writeText(lastText); t.textContent = "Kopiert"; }
+    catch(e){ t.textContent = "Kopieren nicht erlaubt"; }
+  });
+
+  window.addEventListener("hashchange", route);
+  route();
+})();
+</script>
+</body>
+</html>
